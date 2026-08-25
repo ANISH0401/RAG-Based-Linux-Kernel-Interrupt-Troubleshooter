@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🐧 InterruptGPT
+#  InterruptGPT
 
 ### RAG-Based Linux Kernel Interrupt Troubleshooter
 
