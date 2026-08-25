@@ -1,0 +1,13 @@
+[    0.512340] ACPI: PCI Interrupt Link [LNKA] enabled at IRQ 16
+[    1.204551] ahci 0000:00:1f.2: version 3.0
+[    1.204698] ahci 0000:00:1f.2: irq 16 for MSI/MSI-X failed, falling back to INTx
+[    1.205102] ahci 0000:00:1f.2: AHCI 0001.0300 32 slots 6 ports 6 Gbps 0x3f impl SATA mode
+[    1.310445] uhci_hcd 0000:00:1d.0: irq 16, io base 0x0000f0a0
+[    2.884201] e1000e 0000:02:00.0: irq 16 assigned (shared)
+[  312.774519] irq 16: nobody cared (try booting with the "irqpoll" option)
+[  312.774523] handlers:
+[  312.774529] [<ffffffff810f0f70>] ahci_interrupt
+[  312.774534] [<ffffffff81102ab0>] usb_hcd_irq
+[  312.774540] Disabling IRQ #16
+[  313.001220] ata3.00: qc timeout (cmd 0xec)
+[  313.001889] ata3.00: failed to IDENTIFY (I/O error, err_mask=0x4)

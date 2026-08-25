@@ -1,0 +1,13 @@
+# Core API
+fastapi>=0.110
+uvicorn[standard]>=0.27
+pydantic>=2.6
+python-multipart>=0.0.9
+
+# Retrieval
+numpy>=1.26
+scikit-learn>=1.4
+
+# Optional, enabled automatically when installed:
+#   sentence-transformers  -> semantic embeddings instead of TF-IDF
+#   faiss-cpu              -> FAISS index instead of the numpy fallback

@@ -1,0 +1,10 @@
+           CPU0       CPU1       CPU2       CPU3
+  0:         28          0          0          0   IO-APIC    2-edge      timer
+  1:          9          0          0          0   IO-APIC    1-edge      i8042
+  8:          1          0          0          0   IO-APIC    8-edge      rtc0
+ 16:     418922        112         98        104   IO-APIC   16-fasteoi   ahci, uhci_hcd:usb1, eth0
+ 18:       3311        220        198        201   IO-APIC   18-fasteoi   i915
+ 24:        882        910        876        901   PCI-MSI   327680-edge  nvme0q0
+NMI:          4          4          4          4   Non-maskable interrupts
+LOC:     221004     219877     220112     219544   Local timer interrupts
+ERR:       1847

@@ -1,12 +1,13 @@
 <div align="center">
 
-# InterruptGPT
+# 🐧 InterruptGPT
 
 ### RAG-Based Linux Kernel Interrupt Troubleshooter
 
 *Turn hours of interrupt debugging into seconds — parse `dmesg` and `/proc/interrupts`,
 get a scored root-cause analysis grounded in kernel documentation.*
 
+[![CI](https://github.com/<your-username>/interrupt-gpt/actions/workflows/ci.yml/badge.svg)](https://github.com/<your-username>/interrupt-gpt/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110%2B-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)

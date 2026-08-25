@@ -1,0 +1,4 @@
+           CPU0       CPU1       CPU2       CPU3
+ 19:     982331        140        122        118   IO-APIC   19-fasteoi   eth0
+ 24:      52001      51880      51774      51902   PCI-MSI   327680-edge  nvme0q1
+ERR:          0

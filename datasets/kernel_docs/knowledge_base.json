@@ -1,0 +1,72 @@
+[
+  {
+    "doc_id": "kb-shared-irq",
+    "title": "Shared interrupt lines and IRQF_SHARED",
+    "source": "InterruptGPT knowledge base / Linux generic IRQ layer",
+    "tags": ["shared", "irqf_shared", "intx", "conflict"],
+    "text": "On legacy PCI (INTx) several devices commonly assert the same interrupt line. Every driver that wants to attach to such a line must pass IRQF_SHARED when calling request_irq(), and must supply a unique dev_id cookie so the core can tell the handlers apart. When the line asserts, the kernel walks the whole handler chain in registration order and calls each handler. Each handler is expected to read its own device's interrupt status register, and return IRQ_NONE if the device did not raise the interrupt, or IRQ_HANDLED if it did service it. A frequent driver bug is returning IRQ_HANDLED unconditionally, which masks other devices' problems, or returning IRQ_NONE even after servicing the device, which makes the kernel believe the interrupt was never claimed. Sharing is functional but costs latency, because unrelated handlers run on every assertion."
+  },
+  {
+    "doc_id": "kb-nobody-cared",
+    "title": "Diagnosing 'irq N: nobody cared' and automatic IRQ disabling",
+    "source": "InterruptGPT knowledge base / Linux generic IRQ layer",
+    "tags": ["nobody_cared", "spurious", "disable"],
+    "text": "The message 'irq N: nobody cared (try booting with the \"irqpoll\" option)' is emitted by the spurious interrupt detector in the generic IRQ layer. The kernel counts interrupts on a line that no registered handler claimed, meaning every handler returned IRQ_NONE. Once roughly 100,000 unhandled interrupts accumulate with essentially none handled, the kernel protects the machine from a livelock by masking the line entirely and printing 'Disabling IRQ #N'. After that point the devices on that line stop working, which usually shows up as storage timeouts, a dead NIC, or an unresponsive USB controller. The typical root causes are: a device whose interrupt status register is never cleared so the line stays asserted, incorrect ACPI or firmware IRQ routing so the interrupt is delivered on a line where no driver is listening, a driver that fails to recognise its own device's interrupt, or genuinely faulty hardware. Booting with irqpoll is a diagnostic workaround, not a fix; it makes the kernel poll all handlers periodically."
+  },
+  {
+    "doc_id": "kb-msi",
+    "title": "MSI and MSI-X versus legacy INTx interrupts",
+    "source": "InterruptGPT knowledge base / PCI interrupt delivery",
+    "tags": ["msi", "msix", "intx", "vectors"],
+    "text": "Message Signalled Interrupts let a PCI device signal an interrupt by performing a memory write to a special address rather than asserting a physical pin. Because each MSI or MSI-X vector is private to one device (and, with MSI-X, often to one queue within a device), MSI eliminates interrupt sharing and the handler-chain walk it requires. Drivers request them with pci_alloc_irq_vectors(), typically passing PCI_IRQ_MSIX | PCI_IRQ_MSI | PCI_IRQ_LEGACY so the core can fall back progressively. Allocation can fail if the platform is booted with pci=nomsi, if the firmware disables MSI for the slot, if the device is on a bridge with a known MSI erratum, or if the system has exhausted its interrupt vectors. When allocation fails the device silently falls back to legacy INTx, and any latent sharing problems on that line surface immediately. Moving a device from INTx to MSI is therefore the single most effective fix for shared-line conflicts."
+  },
+  {
+    "doc_id": "kb-affinity",
+    "title": "SMP affinity, irqbalance and per-CPU interrupt distribution",
+    "source": "InterruptGPT knowledge base / IRQ affinity",
+    "tags": ["affinity", "smp", "irqbalance", "numa"],
+    "text": "Each interrupt line has an affinity mask controlling which CPUs may service it, exposed at /proc/irq/N/smp_affinity as a hex bitmask and at /proc/irq/N/smp_affinity_list as a CPU list. Writing to these files retargets the interrupt, though the change may only take effect after the next interrupt for level-triggered lines, and managed interrupts belonging to multi-queue devices refuse manual changes because the kernel owns their assignment. The irqbalance daemon redistributes interrupts periodically according to load and topology. Concentration of a high-rate interrupt on a single CPU is not always a bug: pinning a NIC queue to a core on the same NUMA node as the application is a common latency optimisation. It becomes a problem when it is unintentional, since one core saturates handling softirq work while the others idle, capping throughput. Reading /proc/interrupts and comparing the per-CPU columns is the fastest way to spot this."
+  },
+  {
+    "doc_id": "kb-storm",
+    "title": "Interrupt storms, coalescing and NAPI",
+    "source": "InterruptGPT knowledge base / interrupt mitigation",
+    "tags": ["storm", "coalescing", "napi", "throughput"],
+    "text": "An interrupt storm is a sustained interrupt rate high enough that the CPU spends most of its time in interrupt context rather than doing useful work. The classic causes are a level-triggered line that is never de-asserted because the driver does not clear the device's interrupt status register, a device generating one interrupt per packet or per block with no mitigation, or a hardware fault causing continuous assertion. Network drivers mitigate this with NAPI: on the first interrupt the driver disables further interrupts for that queue and switches to polling, re-enabling interrupts only when the queue drains. Many NICs and storage controllers also support hardware interrupt coalescing, configurable through ethtool -C, which delays the interrupt until a packet count or timer threshold is reached, trading a little latency for a large drop in interrupt rate. Diagnosing a storm starts with reading /proc/interrupts twice a second apart and computing the delta per line."
+  },
+  {
+    "doc_id": "kb-proc-interrupts",
+    "title": "Reading /proc/interrupts",
+    "source": "InterruptGPT knowledge base / procfs",
+    "tags": ["proc", "counters", "diagnostics"],
+    "text": "The /proc/interrupts file lists one row per interrupt source. The first column is the IRQ number or a symbolic name, followed by one column per CPU giving the number of interrupts that CPU has serviced since boot, then the interrupt controller chip (for example IO-APIC or PCI-MSI), the trigger type or hardware vector, and finally a comma separated list of the device or driver names attached to that line. More than one name in the final column means the line is shared. Several symbolic rows are not device interrupts: NMI counts non-maskable interrupts, LOC counts local APIC timer interrupts, RES counts rescheduling inter-processor interrupts, CAL counts function call IPIs, and ERR counts APIC error interrupts. A steadily rising ERR count is a strong signal of spurious or misrouted interrupts and usually accompanies 'nobody cared' messages. Because all counters are cumulative since boot, absolute values are far less informative than the delta between two samples."
+  },
+  {
+    "doc_id": "kb-request-irq",
+    "title": "Handler registration with request_irq and return values",
+    "source": "InterruptGPT knowledge base / driver API",
+    "tags": ["request_irq", "handler", "driver", "irq_handled"],
+    "text": "A driver attaches to an interrupt with request_irq() or the managed variant devm_request_irq(), supplying the IRQ number, the handler function, flags, a name that appears in /proc/interrupts, and a dev_id cookie. For threaded handling, request_threaded_irq() takes both a fast primary handler that runs in hard interrupt context and a threaded handler that runs in process context and may sleep. The primary handler must be brief: acknowledge and mask the device interrupt, then return IRQ_WAKE_THREAD to defer the real work. Return values matter enormously on shared lines. IRQ_HANDLED means this device raised the interrupt and it was serviced; IRQ_NONE means this device was not the source. Getting these wrong is one of the most common causes of both 'nobody cared' messages and silently missed interrupts. The name passed to request_irq is what an engineer sees in the action column of /proc/interrupts, so a descriptive name materially speeds up later debugging."
+  },
+  {
+    "doc_id": "kb-triggering",
+    "title": "Level-triggered versus edge-triggered interrupts",
+    "source": "InterruptGPT knowledge base / interrupt controllers",
+    "tags": ["level", "edge", "trigger", "fasteoi"],
+    "text": "A level-triggered interrupt is asserted for as long as the device needs service, so the handler must explicitly clear the condition in the device before returning, otherwise the line re-asserts immediately and the system loops. An edge-triggered interrupt signals only on a transition, which means an edge arriving while the line is masked can be lost entirely, and two rapid edges may be coalesced into one. Legacy PCI INTx is level-triggered and active low, which is why PCI interrupts can be shared safely; MSI is edge-like and inherently unshared. The trigger type appears in /proc/interrupts as part of the hardware vector column, commonly as fasteoi for level-triggered IO-APIC lines or edge for others. Storms are far more characteristic of level-triggered lines, while missed or lost interrupts causing device timeouts are more characteristic of edge-triggered configurations."
+  },
+  {
+    "doc_id": "kb-latency",
+    "title": "Reducing interrupt latency",
+    "source": "InterruptGPT knowledge base / real-time tuning",
+    "tags": ["latency", "realtime", "threaded", "tuning"],
+    "text": "Interrupt latency is the delay between a device asserting an interrupt and its handler starting to run, and it is dominated by how long interrupts stay disabled elsewhere in the kernel. Practical reduction techniques include keeping primary handlers minimal and pushing work into threaded handlers or workqueues, pinning latency-critical interrupts to a dedicated CPU that is isolated from general scheduling with isolcpus or cpusets, avoiding shared lines so unrelated handlers do not run first, and enabling MSI-X so each queue has its own vector. On a PREEMPT_RT kernel most interrupt handlers become threaded by default and can be prioritised with standard scheduler policies. Measurement matters more than intuition: cyclictest characterises system-wide wakeup latency, while the irq tracepoints under /sys/kernel/debug/tracing give per-interrupt entry and exit timings."
+  },
+  {
+    "doc_id": "kb-debug-workflow",
+    "title": "A practical workflow for interrupt debugging",
+    "source": "InterruptGPT knowledge base / methodology",
+    "tags": ["workflow", "debugging", "methodology"],
+    "text": "Start by establishing whether the interrupt is firing at all: sample /proc/interrupts twice and compare the delta for the line in question. If the count is not moving while the device is idle-hung, the interrupt is not being delivered, which points at routing, MSI allocation, or a masked line. If the count is climbing extremely fast, suspect a storm and an uncleared status register. Next identify ownership: the action column of /proc/interrupts names the drivers attached, and more than one name means the line is shared. Then read dmesg for the generic IRQ layer's own diagnostics, particularly 'nobody cared', 'Disabling IRQ', and spurious interrupt warnings. Check whether the device negotiated MSI by looking for PCI-MSI in the chip column rather than IO-APIC. Finally, correlate with recent changes: a kernel upgrade, a firmware update, a BIOS setting, or physically moving a card between slots all change interrupt routing and are the most common triggers for a system that worked yesterday and does not today."
+  }
+]

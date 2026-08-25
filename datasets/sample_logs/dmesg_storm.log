@@ -1,0 +1,4 @@
+[   10.114002] e1000e 0000:02:00.0 eth0: renamed from eth%d
+[  120.554120] Interrupt storm detected on IRQ 19
+[  120.554330] e1000e 0000:02:00.0 eth0: Detected Hardware Unit Hang
+[  121.100455] irq 19: spurious interrupt detected
